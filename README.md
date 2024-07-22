@@ -34,7 +34,7 @@ Kernkonzepte, die im Rahmen der Fallstudie durchlaufen werden sollen sind:
 1. Die Einrichtung einer skalierbaren Data Warehouse Architektur mittels eines ELT (Extract, Load, Transform) - Prozesses
 2. Bedeutung und Implementierung der Konzepte vollständiges- und inkrementelles Laden
 3. Kennenlernen des Datenmodellierungsansatzes Data Vault 2.0 
-4Das Testen des Gesamtergebnisses in einer automatisierten CI/CD-Pipeline in GitHub Action 
+4. Das Testen des Gesamtergebnisses in einer automatisierten CI/CD-Pipeline in GitHub Action 
 
 ## 5. Finale Data Warehouse Architektur 
 Die finale Data Warehouse Architektur besteht aus den folgenden vier Schichten: 
