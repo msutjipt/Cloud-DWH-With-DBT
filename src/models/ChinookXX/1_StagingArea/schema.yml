@@ -1,0 +1,38 @@
+version: 2
+
+sources:
+  - name: landing_zone
+    database: DWHXX
+    schema: dbo
+    tables:
+      - name: Track
+      - name: Invoice
+      - name: InvoiceLine
+
+models:
+  - name: stg_Track
+    columns:
+      - name: TRACK_HK
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_Invoice
+    columns:
+      - name: INVOICE_HK
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_InvoiceLine
+    columns:
+      - name: INVOICE_HK
+        tests:
+          - relationships:
+              to: ref('stg_Invoice')
+              field: INVOICE_HK
+      - name: TRACK_HK
+        tests:
+          - relationships:
+              to: ref('stg_Track')
+              field: TRACK_HK

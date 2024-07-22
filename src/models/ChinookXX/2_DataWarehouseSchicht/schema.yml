@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: dv_Hub_Track
+    columns:
+      - name: TRACK_HK
+        tests:
+          - unique
+          - not_null
+
+  - name: dv_Hub_Invoice
+    columns:
+      - name: INVOICE_HK
+        tests:
+          - unique
+          - not_null
+
+  - name: dv_Link_InvoiceLine
+    columns:
+      - name: INVOICE_HK
+        tests:
+          - relationships:
+              to: ref('dv_Hub_Invoice')
+              field: INVOICE_HK
+      - name: TRACK_HK
+        tests:
+          - relationships:
+              to: ref('dv_Hub_Track')
+              field: TRACK_HK
+
+  - name: dv_Sat_Invoice
+    columns:
+      - name: INVOICE_HK
+        tests:
+          - relationships:
+              to: ref('dv_Hub_Invoice')
+              field: INVOICE_HK
+
+  - name: dv_Sat_Track
+    columns:
+      - name: TRACK_HK
+        tests:
+          - relationships:
+              to: ref('dv_Hub_Track')
+              field: TRACK_HK
+
+  - name: dv_Sat_InvoiceLine
+    columns:
+      - name: TRACK_INVOICE_HK
+        tests:
+          - relationships:
+              to: ref('dv_Link_InvoiceLine')
+              field: TRACK_INVOICE_HK

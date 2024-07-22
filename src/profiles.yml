@@ -1,0 +1,21 @@
+DWHXX:
+  target: dev_hsh
+  outputs:
+    dev_hsh:
+      type: sqlserver
+      driver: "{{ env_var('DBT_MSSQLSERVER_DRIVER') }}" # (The ODBC Driver installed on your system)
+      server: "{{ env_var('DBT_MSSQLSERVER_SERVER') }}"
+      port: 1433
+      database: "{{ env_var('DBT_MSSQLSERVER_DATABASE') }}"
+      schema: "{{ env_var('DBT_MSSQLSERVER_SCHEMA') }}"
+      user: "{{ env_var('DBT_MSSQLSERVER_USER') }}"
+      password: "{{ env_var('DBT_MSSQLSERVER_PASSWORD') }}"
+    dev_hsh_2:
+      type: sqlserver
+      driver: 'ODBC Driver 17 for SQL Server' # (The ODBC Driver installed on your system)
+      server: marc-dwh-sqlserver.database.windows.net
+      port: 1433
+      database: DWHXX
+      schema: dbo
+      user: DWHXX
+      password: SQLServer2023!

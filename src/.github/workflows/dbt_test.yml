@@ -1,0 +1,75 @@
+name: Python application
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  DBT_PROFILES_DIR: ./
+  DBT_MSSQLSERVER_DRIVER: ${{ secrets.DBT_MSSQLSERVER_DRIVER }}
+  DBT_MSSQLSERVER_SERVER: ${{ secrets.DBT_MSSQLSERVER_SERVER }}
+  DBT_MSSQLSERVER_DATABASE: ${{ secrets.DBT_MSSQLSERVER_DATABASE }}
+  DBT_MSSQLSERVER_SCHEMA: ${{ secrets.DBT_MSSQLSERVER_SCHEMA }}
+  DBT_MSSQLSERVER_USER: ${{ secrets.DBT_MSSQLSERVER_USER }}
+  DBT_MSSQLSERVER_PASSWORD: ${{ secrets.DBT_MSSQLSERVER_PASSWORD }}
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+
+      - name: Install requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install MSSQL Drivers
+        run: |
+          sudo apt update
+          sudo apt install -y unixodbc-dev
+
+      - name: Install necessary dbt packages
+        run: |
+          dbt deps 
+
+      - name: Debug dbt
+        run: |
+          dbt debug 
+
+      - name: Check availability of tables in Landing Zone
+        run: |
+          dbt test -s tag:lz
+
+      - name: Load Staging Area tables
+        run: |
+          dbt run --full-refresh -s tag:stg
+
+      - name: Test Staging Area tables
+        run: |
+          dbt test -s tag:stg
+
+      - name: Load Hub tables
+        run: |
+          dbt run -s tag:hub
+
+      - name: Load Link tables
+        run: |
+          dbt run -s tag:link
+
+      - name: Load Satellite tables
+        run: |
+          dbt run -s tag:sat
+
+      - name: Test Data Vault tables
+        run: |
+          dbt test -s tag:dv

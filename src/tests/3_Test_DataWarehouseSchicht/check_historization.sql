@@ -1,0 +1,4 @@
+SELECT COUNT(*) as count
+FROM "dv_Sat_Invoice"
+WHERE EFFECTIVE_FROM = '2023-08-17'
+HAVING COUNT(*) != 1
