@@ -1,0 +1,32 @@
+{
+	"name": "Customer_FirstBatch",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "DWHXX_Blob",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Übung 01 - IncrementalLoading"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "Customer.csv",
+				"container": "incrementalload"
+			},
+			"columnDelimiter": ";",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "CustomerId;FirstName;LastName;Company;Address;City;State;Country;PostalCode;Phone;Fax;Email;SupportRepId",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

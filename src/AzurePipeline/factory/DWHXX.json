@@ -1,0 +1,9 @@
+{
+	"name": "DWHXX",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "0a6a1559-fb9a-4a0c-b12b-1febc5aa2558",
+		"tenantId": "3b7d6361-d220-4816-a614-4c8dca316c03"
+	}
+}

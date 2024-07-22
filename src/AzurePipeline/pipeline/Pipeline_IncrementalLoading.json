@@ -1,0 +1,527 @@
+{
+	"name": "Pipeline_IncrementalLoading",
+	"properties": {
+		"activities": [
+			{
+				"name": "Switch1",
+				"type": "Switch",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "Default",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "Aktualisierte_Eintraege",
+							"activities": [
+								{
+									"name": "Lade Quelldaten in CustomerSource",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobStorageReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"preCopyScript": "Truncate Table dbo.CustomerSource;",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false,
+											"tableOption": "autoCreate",
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Customer_FirstBatch",
+											"type": "DatasetReference"
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "CustomerSourceTable",
+											"type": "DatasetReference"
+										}
+									]
+								},
+								{
+									"name": "UPSERT MERGE vor Aktualisierung",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "Lade Quelldaten in CustomerSource",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "DWHXX_DB",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "Query",
+												"text": "MERGE CustomerTarget AS TARGET\nUSING CustomerSource AS SOURCE\nON TARGET.CustomerId = SOURCE.CustomerId\nWHEN MATCHED THEN\n    UPDATE SET TARGET.FirstName = SOURCE.FirstName,TARGET.LastName = SOURCE.LastName,TARGET.Company = SOURCE.Company,TARGET.Address = SOURCE.Address,TARGET.City = SOURCE.City,TARGET.State = SOURCE.State, \nTARGET.Country = SOURCE.Country,TARGET.PostalCode = SOURCE.PostalCode,TARGET.Phone = SOURCE.Phone,TARGET.Fax = SOURCE.Fax,TARGET.Email = SOURCE.Email,TARGET.SupportRepId = SOURCE.SupportRepId\nWHEN NOT MATCHED BY TARGET THEN\n    INSERT (CustomerId,FirstName,LastName,Company,Address,City,State,Country,PostalCode,Phone,Fax,Email,SupportRepId)\n    VALUES (SOURCE.CustomerId,SOURCE.FirstName,SOURCE.LastName,SOURCE.Company,SOURCE.Address,SOURCE.City,SOURCE.State,SOURCE.Country,SOURCE.PostalCode,SOURCE.Phone,SOURCE.Fax,SOURCE.Email,SOURCE.SupportRepId)\nWHEN NOT MATCHED BY SOURCE THEN\n    DELETE;\n"
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								},
+								{
+									"name": "Aktualisierung",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "UPSERT MERGE vor Aktualisierung",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "DWHXX_DB",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "Query",
+												"text": "UPDATE dbo.CustomerSource \nSET Address = 'Jahnstraße 21',\n    City = 'Stadthagen',\n\tPostalCode = '31655'\nWHERE CustomerId = '38'"
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								},
+								{
+									"name": "UPSERT MERGE nach Aktualisierung",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "Aktualisierung",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "DWHXX_DB",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "Query",
+												"text": "MERGE CustomerTarget AS TARGET\nUSING CustomerSource AS SOURCE\nON TARGET.CustomerId = SOURCE.CustomerId\nWHEN MATCHED THEN\n    UPDATE SET TARGET.FirstName = SOURCE.FirstName,TARGET.LastName = SOURCE.LastName,TARGET.Company = SOURCE.Company,TARGET.Address = SOURCE.Address,TARGET.City = SOURCE.City,TARGET.State = SOURCE.State, \nTARGET.Country = SOURCE.Country,TARGET.PostalCode = SOURCE.PostalCode,TARGET.Phone = SOURCE.Phone,TARGET.Fax = SOURCE.Fax,TARGET.Email = SOURCE.Email,TARGET.SupportRepId = SOURCE.SupportRepId\nWHEN NOT MATCHED BY TARGET THEN\n    INSERT (CustomerId,FirstName,LastName,Company,Address,City,State,Country,PostalCode,Phone,Fax,Email,SupportRepId)\n    VALUES (SOURCE.CustomerId,SOURCE.FirstName,SOURCE.LastName,SOURCE.Company,SOURCE.Address,SOURCE.City,SOURCE.State,SOURCE.Country,SOURCE.PostalCode,SOURCE.Phone,SOURCE.Fax,SOURCE.Email,SOURCE.SupportRepId)\nWHEN NOT MATCHED BY SOURCE THEN\n    DELETE;\n"
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								}
+							]
+						},
+						{
+							"value": "Geloeschte_Eintraege",
+							"activities": [
+								{
+									"name": "UPSERT MERGE vor Loeschen",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "Lade Quelldaten",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "DWHXX_DB",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "Query",
+												"text": "MERGE CustomerTarget AS TARGET\nUSING CustomerSource AS SOURCE\nON TARGET.CustomerId = SOURCE.CustomerId\nWHEN MATCHED THEN\n    UPDATE SET TARGET.FirstName = SOURCE.FirstName,TARGET.LastName = SOURCE.LastName,TARGET.Company = SOURCE.Company,TARGET.Address = SOURCE.Address,TARGET.City = SOURCE.City,TARGET.State = SOURCE.State, \nTARGET.Country = SOURCE.Country,TARGET.PostalCode = SOURCE.PostalCode,TARGET.Phone = SOURCE.Phone,TARGET.Fax = SOURCE.Fax,TARGET.Email = SOURCE.Email,TARGET.SupportRepId = SOURCE.SupportRepId\nWHEN NOT MATCHED BY TARGET THEN\n    INSERT (CustomerId,FirstName,LastName,Company,Address,City,State,Country,PostalCode,Phone,Fax,Email,SupportRepId)\n    VALUES (SOURCE.CustomerId,SOURCE.FirstName,SOURCE.LastName,SOURCE.Company,SOURCE.Address,SOURCE.City,SOURCE.State,SOURCE.Country,SOURCE.PostalCode,SOURCE.Phone,SOURCE.Fax,SOURCE.Email,SOURCE.SupportRepId)\nWHEN NOT MATCHED BY SOURCE THEN\n    DELETE;\n"
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								},
+								{
+									"name": "Lade Quelldaten",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobStorageReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"preCopyScript": "Truncate Table dbo.CustomerSource;",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false,
+											"tableOption": "autoCreate",
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Customer_FirstBatch",
+											"type": "DatasetReference"
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "CustomerSourceTable",
+											"type": "DatasetReference"
+										}
+									]
+								},
+								{
+									"name": "Loeschen",
+									"description": "",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "UPSERT MERGE vor Loeschen",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "DWHXX_DB",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "Query",
+												"text": "DELETE \nFROM CustomerSource \nWHERE CustomerId = '38';"
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								},
+								{
+									"name": "UPSERT MERGE nach Loeschen",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "Loeschen",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "DWHXX_DB",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "Query",
+												"text": "MERGE CustomerTarget AS TARGET\nUSING CustomerSource AS SOURCE\nON TARGET.CustomerId = SOURCE.CustomerId\nWHEN MATCHED THEN\n    UPDATE SET TARGET.FirstName = SOURCE.FirstName,TARGET.LastName = SOURCE.LastName,TARGET.Company = SOURCE.Company,TARGET.Address = SOURCE.Address,TARGET.City = SOURCE.City,TARGET.State = SOURCE.State, \nTARGET.Country = SOURCE.Country,TARGET.PostalCode = SOURCE.PostalCode,TARGET.Phone = SOURCE.Phone,TARGET.Fax = SOURCE.Fax,TARGET.Email = SOURCE.Email,TARGET.SupportRepId = SOURCE.SupportRepId\nWHEN NOT MATCHED BY TARGET THEN\n    INSERT (CustomerId,FirstName,LastName,Company,Address,City,State,Country,PostalCode,Phone,Fax,Email,SupportRepId)\n    VALUES (SOURCE.CustomerId,SOURCE.FirstName,SOURCE.LastName,SOURCE.Company,SOURCE.Address,SOURCE.City,SOURCE.State,SOURCE.Country,SOURCE.PostalCode,SOURCE.Phone,SOURCE.Fax,SOURCE.Email,SOURCE.SupportRepId)\nWHEN NOT MATCHED BY SOURCE THEN\n    DELETE;\n"
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								}
+							]
+						}
+					],
+					"defaultActivities": [
+						{
+							"name": "Loading First Batch",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"preCopyScript": "Truncate Table dbo.CustomerSource;",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false,
+									"tableOption": "autoCreate",
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Customer_FirstBatch",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "CustomerSourceTable",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "UPSERT MERGE First Batch",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Loading First Batch",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "DWHXX_DB",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": "MERGE CustomerTarget AS TARGET\nUSING CustomerSource AS SOURCE\nON TARGET.CustomerId = SOURCE.CustomerId\nWHEN MATCHED THEN\n    UPDATE SET TARGET.FirstName = SOURCE.FirstName,TARGET.LastName = SOURCE.LastName,TARGET.Company = SOURCE.Company,TARGET.Address = SOURCE.Address,TARGET.City = SOURCE.City,TARGET.State = SOURCE.State, \nTARGET.Country = SOURCE.Country,TARGET.PostalCode = SOURCE.PostalCode,TARGET.Phone = SOURCE.Phone,TARGET.Fax = SOURCE.Fax,TARGET.Email = SOURCE.Email,TARGET.SupportRepId = SOURCE.SupportRepId\nWHEN NOT MATCHED BY TARGET THEN\n    INSERT (CustomerId,FirstName,LastName,Company,Address,City,State,Country,PostalCode,Phone,Fax,Email,SupportRepId)\n    VALUES (SOURCE.CustomerId,SOURCE.FirstName,SOURCE.LastName,SOURCE.Company,SOURCE.Address,SOURCE.City,SOURCE.State,SOURCE.Country,SOURCE.PostalCode,SOURCE.Phone,SOURCE.Fax,SOURCE.Email,SOURCE.SupportRepId)\nWHEN NOT MATCHED BY SOURCE THEN\n    DELETE;\n"
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "Loading Second Batch",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "UPSERT MERGE First Batch",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"preCopyScript": "Truncate Table dbo.CustomerSource;",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Customer_SecondBatch",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "CustomerSourceTable",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "UPSERT MERGE Second Batch",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Loading Second Batch",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "DWHXX_DB",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": "MERGE CustomerTarget AS TARGET\nUSING CustomerSource AS SOURCE\nON TARGET.CustomerId = SOURCE.CustomerId\nWHEN MATCHED THEN\n    UPDATE SET TARGET.FirstName = SOURCE.FirstName,TARGET.LastName = SOURCE.LastName,TARGET.Company = SOURCE.Company,TARGET.Address = SOURCE.Address,TARGET.City = SOURCE.City,TARGET.State = SOURCE.State, \nTARGET.Country = SOURCE.Country,TARGET.PostalCode = SOURCE.PostalCode,TARGET.Phone = SOURCE.Phone,TARGET.Fax = SOURCE.Fax,TARGET.Email = SOURCE.Email,TARGET.SupportRepId = SOURCE.SupportRepId\nWHEN NOT MATCHED BY TARGET THEN\n    INSERT (CustomerId,FirstName,LastName,Company,Address,City,State,Country,PostalCode,Phone,Fax,Email,SupportRepId)\n    VALUES (SOURCE.CustomerId,SOURCE.FirstName,SOURCE.LastName,SOURCE.Company,SOURCE.Address,SOURCE.City,SOURCE.State,SOURCE.Country,SOURCE.PostalCode,SOURCE.Phone,SOURCE.Fax,SOURCE.Email,SOURCE.SupportRepId)\nWHEN NOT MATCHED BY SOURCE THEN\n    DELETE;\n"
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-08-02T20:59:56Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

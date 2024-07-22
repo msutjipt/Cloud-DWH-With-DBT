@@ -1,0 +1,30 @@
+{
+	"name": "Dateinamen",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "DWHXX_Blob",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Übung 02 - Landing Zone"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"container": "chinookdb"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "AlbumId;Title;ArtistId",
+				"type": "String"
+			}
+		]
+	}
+}

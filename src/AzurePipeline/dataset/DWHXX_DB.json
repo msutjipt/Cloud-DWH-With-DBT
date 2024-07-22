@@ -1,0 +1,26 @@
+{
+	"name": "DWHXX_DB",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "DWHXX_DB",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"TableName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Übung 02 - Landing Zone"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"table": {
+				"value": "@dataset().TableName",
+				"type": "Expression"
+			}
+		}
+	}
+}
